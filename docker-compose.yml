@@ -1,0 +1,8 @@
+services:
+  cassandra:
+    image: cassandra:latest
+    container_name: taxi-typed
+    ports:
+      - 9042:9042
+    environment:
+      - CASSANDRA_CLUSTER_NAME=akka-cassandra-cluster
