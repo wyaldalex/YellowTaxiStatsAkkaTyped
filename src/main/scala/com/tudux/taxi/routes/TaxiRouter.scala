@@ -9,18 +9,25 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 import akka.http.scaladsl.server.Route
 import cats.data.Validated.{Invalid, Valid}
 import cats.implicits._
+import com.tudux.taxi.actors.PersistentTaxiTripEntry.Command.GetTaxiTripEntry
 import com.tudux.taxi.actors.PersistentTaxiTripEntry.Response
-import com.tudux.taxi.actors.PersistentTaxiTripEntry.Response.CreatedTaxiTripEntryResponse
-import com.tudux.taxi.actors.TaxiTripParent.{CommandParent, CreateTaxiTripEntryParent}
+import com.tudux.taxi.actors.PersistentTaxiTripEntry.Response.{CreatedTaxiTripEntryResponse, GetTaxiTripEntryResponse}
+import com.tudux.taxi.actors.TaxiTripParent.{CommandParent, CreateTaxiTripEntryParent, GetTaxiTripEntryParent}
 import com.tudux.taxi.common.TaxiTripEntryCommon.TaxiTripEntry
+import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+import io.circe.generic.auto._
+import spray.json._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import spray.json.DefaultJsonProtocol
 
 import java.util.UUID
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class RequestTaxiTripEntryRequest(vendor_id: Int, tpep_pickup_datetime: String, tpep_dropoff_datetime: String, passenger_count: Int,
                                        trip_distance: Double, pickup_longitude: Double, pickup_latitude: Double, rate_codeID: Int,
@@ -34,11 +41,23 @@ case class RequestTaxiTripEntryRequest(vendor_id: Int, tpep_pickup_datetime: Str
   def toCommand(replyTo: ActorRef[Response]): CommandParent = CreateTaxiTripEntryParent(taxi_trip_entry, replyTo)
 }
 
-class TaxiRouter(taxi_actor: ActorRef[CommandParent])(implicit system: ActorSystem[_]) {
+
+trait TaxiEntryProtocol extends DefaultJsonProtocol {
+  implicit val taxiEntryFormat = jsonFormat20(TaxiTripEntry)
+}
+
+trait TaxiEntryResponseProtocol extends DefaultJsonProtocol with TaxiEntryProtocol {
+  implicit val taxiEntryResponseFormat = jsonFormat1(GetTaxiTripEntryResponse)
+}
+
+class TaxiRouter(taxi_actor: ActorRef[CommandParent])(implicit system: ActorSystem[_]) extends TaxiEntryResponseProtocol {
   implicit val timeout: Timeout = Timeout(5.seconds)
 
   def createTaxiEntry(request: RequestTaxiTripEntryRequest): Future[Response] =
     taxi_actor.ask(replyTo => request.toCommand(replyTo))
+
+  def getTaxiTripEntry(trip_id: String): Future[Response] =
+    taxi_actor.ask(replyTo => GetTaxiTripEntryParent(trip_id,replyTo) )
 
   def toHttpEntity(payload: String): HttpEntity.Strict = HttpEntity(ContentTypes.`application/json`, payload)
   case class GenericResponse(taxi_trip_id: String)
@@ -62,7 +81,18 @@ class TaxiRouter(taxi_actor: ActorRef[CommandParent])(implicit system: ActorSyst
             }
           }
         }
-      }
+      } ~
+        get {
+          path(Segment) { trip_id =>
+            complete(
+              getTaxiTripEntry(trip_id)
+                .mapTo[GetTaxiTripEntryResponse]
+                .map(_.toJson.prettyPrint)
+                .map(toHttpEntity)
+
+            )
+          }
+        }
     }
 
 }
