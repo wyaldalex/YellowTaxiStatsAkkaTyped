@@ -5,6 +5,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.cluster.typed.{Cluster, Join}
 import akka.http.scaladsl.Http
+import akka.management.scaladsl.AkkaManagement
 import akka.util.Timeout
 import com.tudux.taxi.actors.TaxiTripParent
 
@@ -51,6 +52,10 @@ object TaxiApp {
     //https://discuss.lightbend.com/t/running-services-failed-akka-no-coordinator-found-to-register-probably-no-seed-nodes-configured-and-manual-cluster-join-not-performed/3334/3
     val cluster  = Cluster(system)
     cluster.manager.tell(Join(cluster.selfMember.address))
+
+    //start management
+    //endpoint1: http://localhost:8558/cluster/shards/TaxiEntryRequestHandler
+    AkkaManagement(system).start()
 
     implicit val timeout: Timeout = Timeout(5.seconds)
     implicit val ec: ExecutionContext = system.executionContext
