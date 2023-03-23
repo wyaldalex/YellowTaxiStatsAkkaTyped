@@ -3,11 +3,7 @@ package com.tudux.taxi.actors
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior}
-
-import scala.util.{Failure, Success, Try}
 import com.tudux.taxi.common.TaxiTripEntryCommon.TaxiTripEntry
-
-import java.util.UUID
 
 object PersistentTaxiTripEntry {
 

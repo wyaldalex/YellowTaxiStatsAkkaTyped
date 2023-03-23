@@ -1,33 +1,22 @@
 package com.tudux.taxi.routes
 
-import akka.http.scaladsl.server.Directives._
+import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
-import akka.http.scaladsl.model.headers.Location
-import io.circe.generic.auto._
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-import akka.actor.typed.scaladsl.AskPattern._
+import akka.http.scaladsl.server.Directives._
 import akka.util.Timeout
-
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
-import scala.util.{Failure, Success}
-import akka.http.scaladsl.server.Route
-import cats.data.Validated.{Invalid, Valid}
-import cats.implicits._
-import com.tudux.taxi.actors.PersistentTaxiTripEntry.Command.GetTaxiTripEntry
 import com.tudux.taxi.actors.PersistentTaxiTripEntry.Response
 import com.tudux.taxi.actors.PersistentTaxiTripEntry.Response.{CreatedTaxiTripEntryResponse, GetTaxiTripEntryResponse}
 import com.tudux.taxi.actors.TaxiTripParent.{CommandParent, CreateTaxiTripEntryParent, GetTaxiTripEntryParent}
 import com.tudux.taxi.common.TaxiTripEntryCommon.TaxiTripEntry
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
-import spray.json._
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import spray.json.DefaultJsonProtocol
+import spray.json.{DefaultJsonProtocol, _}
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 case class RequestTaxiTripEntryRequest(vendor_id: Int, tpep_pickup_datetime: String, tpep_dropoff_datetime: String, passenger_count: Int,
                                        trip_distance: Double, pickup_longitude: Double, pickup_latitude: Double, rate_codeID: Int,

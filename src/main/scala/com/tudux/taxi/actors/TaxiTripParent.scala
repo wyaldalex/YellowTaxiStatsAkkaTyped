@@ -1,15 +1,12 @@
 package com.tudux.taxi.actors
 
-import akka.actor.PoisonPill
-import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ActorRef, Behavior}
 import akka.cluster.sharding.typed.HashCodeNoEnvelopeMessageExtractor
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityTypeKey}
 import com.tudux.taxi.actors.PersistentTaxiTripEntry.Command.{CreateTaxiTripEntry, GetTaxiTripEntry}
 import com.tudux.taxi.actors.PersistentTaxiTripEntry.{Command, Response}
 import com.tudux.taxi.common.TaxiTripEntryCommon.TaxiTripEntry
-
-import java.util.UUID
 
 
 object TaxiTripParent {
